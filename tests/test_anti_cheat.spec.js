@@ -19,7 +19,8 @@ async function setupAndStartExam(page) {
     data: {
       OrderID: order.OrderID,
       PaymentID: paymentId,
-      Signature: `sim_sig_${order.OrderID}_${paymentId}`
+      Signature: `sim_sig_${order.OrderID}_${paymentId}_${order.SimulationToken}`,
+      SimulationToken: order.SimulationToken
     }
   });
   expect(verifyRes.ok()).toBeTruthy();
@@ -185,17 +186,25 @@ test.describe('Suite 4: Frontend Anti-Cheat & UI Integrity', () => {
   test('4. Safe resume preserves answers and continuous timer on page reload', async ({ page }) => {
     await setupAndStartExam(page);
 
-    // Answer Q1: Select first option
+    // Answer Q1 regardless of whether randomization places an MCQ or text question first.
     const firstOption = page.locator('.option-item').first();
-    await firstOption.click();
-    await expect(firstOption).toHaveClass(/selected/);
+    if (await firstOption.count()) {
+      await firstOption.click();
+      await expect(firstOption).toHaveClass(/selected/);
+    } else {
+      await page.locator('#textAnswerInput').fill('answer');
+    }
 
     // Move to Q2 and answer
     await page.locator('#nextQuestionBtn').click();
     await page.waitForTimeout(300);
     const q2FirstOption = page.locator('.option-item').first();
-    await q2FirstOption.click();
-    await expect(q2FirstOption).toHaveClass(/selected/);
+    if (await q2FirstOption.count()) {
+      await q2FirstOption.click();
+      await expect(q2FirstOption).toHaveClass(/selected/);
+    } else {
+      await page.locator('#textAnswerInput').fill('answer');
+    }
 
     // Read timer value before reload
     const timerTextBefore = await page.locator('#timerDisplay').textContent();
@@ -248,4 +257,3 @@ test.describe('Suite 4: Frontend Anti-Cheat & UI Integrity', () => {
   });
 
 });
-

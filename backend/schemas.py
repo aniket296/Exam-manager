@@ -150,11 +150,13 @@ class PaymentCreateOrderResponse(BaseModel):
     Currency: str
     KeyID: str
     SimulationMode: bool = False
+    SimulationToken: Optional[str] = None
 
 class PaymentVerifyRequest(BaseModel):
     OrderID: str = Field(..., min_length=1, max_length=64)
     PaymentID: str = Field(..., min_length=1, max_length=64)
     Signature: str = Field(..., min_length=1, max_length=256)
+    SimulationToken: Optional[str] = Field(None, max_length=256)
 
 class PaymentVerifyResponse(BaseModel):
     Success: bool

@@ -55,13 +55,15 @@ def test_payment_order_and_verification_lifecycle(client, db_session):
     })
     assert bad_verify.status_code == 400
 
-    # 3. Verify with valid simulation signature
+    # 3. Verify with a valid one-time simulation signature
     payment_id = "pay_valid_sim_999"
-    valid_sig = f"sim_sig_{order_id}_{payment_id}"
+    simulation_token = data["SimulationToken"]
+    valid_sig = razorpay_service.generate_simulation_payment_signature(order_id, payment_id, simulation_token)
     verify_res = client.post("/payments/verify", json={
         "OrderID": order_id,
         "PaymentID": payment_id,
-        "Signature": valid_sig
+        "Signature": valid_sig,
+        "SimulationToken": simulation_token
     })
     assert verify_res.status_code == 200
     verify_data = verify_res.json()
@@ -73,7 +75,8 @@ def test_payment_order_and_verification_lifecycle(client, db_session):
     replay_res = client.post("/payments/verify", json={
         "OrderID": order_id,
         "PaymentID": payment_id,
-        "Signature": valid_sig
+        "Signature": valid_sig,
+        "SimulationToken": simulation_token
     })
     assert replay_res.status_code == 409
 
@@ -102,7 +105,7 @@ def test_webhook_processing_and_idempotency(client, db_session):
         }
     }
     raw_payload = json.dumps(webhook_body).encode("utf-8")
-    sig = "sim_webhook_sig_test"
+    sig = razorpay_service.generate_webhook_signature(raw_payload)
 
     # 1. Process webhook
     res = client.post(

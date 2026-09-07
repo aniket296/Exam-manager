@@ -166,12 +166,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (orderData.SimulationMode) {
         // Simulation mode verification (Offline/Demo)
         const simPaymentId = `pay_sim_${Date.now()}`;
-        const simSig = `sim_sig_${orderData.OrderID}_${simPaymentId}`;
+        const simSig = `sim_sig_${orderData.OrderID}_${simPaymentId}_${orderData.SimulationToken}`;
 
         const verifyRes = await API.post("/payments/verify", {
           OrderID: orderData.OrderID,
           PaymentID: simPaymentId,
-          Signature: simSig
+          Signature: simSig,
+          SimulationToken: orderData.SimulationToken
         });
 
         // Store attempt session securely

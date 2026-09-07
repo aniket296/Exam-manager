@@ -4,6 +4,7 @@ import json
 import secrets
 from backend.config import settings
 from backend.utils.hashing import hmac_sha256
+from backend.services.razorpay_service import razorpay_service
 
 def generate_mock_webhook_payload(
     event_type: str = "payment.captured",
@@ -42,6 +43,8 @@ def generate_mock_webhook_payload(
 
 def generate_webhook_signature(raw_body: bytes, secret: str = None) -> str:
     """Generates valid HMAC-SHA256 signature for Razorpay webhook payload."""
+    if razorpay_service.simulation_mode and secret is None:
+        return razorpay_service.generate_webhook_signature(raw_body)
     secret = secret or settings.RAZORPAY_WEBHOOK_SECRET
     return hmac_sha256(secret, raw_body)
 
@@ -54,4 +57,3 @@ def generate_checkout_signature(order_id: str, payment_id: str, secret: str = No
     secret = secret or settings.RAZORPAY_KEY_SECRET
     payload = f"{order_id}|{payment_id}".encode("utf-8")
     return hmac_sha256(secret, payload)
-

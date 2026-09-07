@@ -235,12 +235,23 @@ class ExamService:
         if not paper:
             raise HTTPException(status_code=404, detail="Assessment paper not found.")
 
-        # Double submission rejection check (Suite 2)
+        # Idempotent re-submission: return the stored result instead of failing.
         if attempt.Status == "COMPLETED":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="This test has already been completed and submitted."
-            )
+            paper = db.query(PaperModel).filter(PaperModel.PaperID == attempt.PaperID).first()
+            return {
+                "AttemptID": attempt.AttemptID,
+                "StudentName": attempt.Name,
+                "PaperTitle": paper.Title if paper else "",
+                "Score": attempt.Score,
+                "MaxMarks": attempt.MaxMarks,
+                "Percentage": (attempt.Score / attempt.MaxMarks * 100.0) if attempt.MaxMarks and attempt.MaxMarks > 0 else 0.0,
+                "CorrectCount": attempt.CorrectCount,
+                "WrongCount": attempt.WrongCount,
+                "UnansweredCount": attempt.UnansweredCount,
+                "CompletedAt": to_iso(attempt.CompletedAt),
+                "ShowAnswerKey": bool(paper.ShowAnswerKey) if paper else False,
+                "QuestionBreakdown": None,
+            }
 
         # Check authoritative deadline with 30-second submission network grace
         deadline = attempt.Deadline

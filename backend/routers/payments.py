@@ -48,7 +48,8 @@ def create_payment_order(
         OrderModel.ExpiresAt > now
     ).first()
 
-    if recent_order:
+    reusable_simulation_token = razorpay_service._simulation_order_tokens.get(recent_order.OrderID) if recent_order else None
+    if recent_order and (not razorpay_service.simulation_mode or reusable_simulation_token):
         return PaymentCreateOrderResponse(
             OrderID=recent_order.OrderID,
             PaperID=paper.PaperID,
@@ -56,7 +57,8 @@ def create_payment_order(
             AmountMinorUnits=recent_order.AmountMinorUnits,
             Currency=recent_order.Currency,
             KeyID=settings.RAZORPAY_KEY_ID,
-            SimulationMode=razorpay_service.simulation_mode
+            SimulationMode=razorpay_service.simulation_mode,
+            SimulationToken=reusable_simulation_token
         )
 
     # 3. Create Razorpay order with authoritative price
@@ -81,6 +83,7 @@ def create_payment_order(
         )
 
     order_id = rzp_order["id"]
+    simulation_token = rzp_order.get("simulation_token")
 
     # 4. Save Order in Transactional DB
     new_order = OrderModel(
@@ -106,7 +109,8 @@ def create_payment_order(
         AmountMinorUnits=paper.PriceMinorUnits,
         Currency=paper.Currency,
         KeyID=settings.RAZORPAY_KEY_ID,
-        SimulationMode=razorpay_service.simulation_mode
+        SimulationMode=razorpay_service.simulation_mode,
+        SimulationToken=simulation_token
     )
 
 @router.post("/verify", response_model=PaymentVerifyResponse)
@@ -147,7 +151,8 @@ def verify_payment(
     is_valid = razorpay_service.verify_payment_signature(
         order_id=payload.OrderID,
         payment_id=payload.PaymentID,
-        signature=payload.Signature
+        signature=payload.Signature,
+        simulation_token=payload.SimulationToken
     )
 
     if not is_valid:
@@ -232,4 +237,3 @@ async def razorpay_webhook(
     if result.get("status") == "error":
         raise HTTPException(status_code=400, detail=result.get("message"))
     return result
-

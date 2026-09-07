@@ -142,9 +142,10 @@ def test_double_submission_prevention(client, db_session, sample_paper):
     res_1 = client.post(f"/submit/{sample_paper.PaperID}/{payment_id}", json={"Answers": {"Q101": "OPT_B"}})
     assert res_1.status_code == 200
 
-    # Second submission -> Rejected with 409 Conflict
+    # Second submission -> Idempotently returns the stored result
     res_2 = client.post(f"/submit/{sample_paper.PaperID}/{payment_id}", json={"Answers": {"Q101": "OPT_B"}})
-    assert res_2.status_code == 409
+    assert res_2.status_code == 200
+    assert res_2.json()["Score"] == res_1.json()["Score"]
 
 # --- 4. Webhook Signature Tampering ---
 def test_webhook_signature_tampering(client):
@@ -159,4 +160,3 @@ def test_webhook_signature_tampering(client):
     )
     assert res.status_code == 400
     assert "signature" in res.json()["detail"].lower()
-

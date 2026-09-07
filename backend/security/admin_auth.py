@@ -13,7 +13,8 @@ security_bearer = HTTPBearer(auto_error=False)
 
 def authenticate_admin_password(password: str) -> bool:
     """Verifies plain text password against settings.ADMIN_PASSWORD_HASH."""
-    # Check default/configured password hash
+    if not settings.ADMIN_PASSWORD_HASH:
+        return False
     return verify_password(password, settings.ADMIN_PASSWORD_HASH)
 
 def create_admin_session(db: Session) -> Tuple[str, str]:

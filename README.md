@@ -143,7 +143,7 @@ Exam manager/
    ```bash
    cp backend/.env.example backend/.env
    ```
-   *(By default, `RAZORPAY_SIMULATION_MODE=true`, allowing instant end-to-end testing without external credentials).*
+   *(For local demos only, set `RAZORPAY_SIMULATION_MODE=true`; production must use verified Razorpay credentials.)*
 5. Run the automated test suite:
    ```bash
    python -m pytest backend/tests -v
@@ -293,4 +293,3 @@ The platform automatically synchronizes with Google Sheets when configured via `
 ## 8. License
 
 Educational Assessment Platform - Released for student and institutional learning.
-
