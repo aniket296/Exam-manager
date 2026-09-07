@@ -1,3 +1,4 @@
+import os
 import secrets
 from datetime import timedelta
 from typing import Tuple
@@ -12,10 +13,16 @@ from backend.utils.hashing import verify_password, sha256_hash
 security_bearer = HTTPBearer(auto_error=False)
 
 def authenticate_admin_password(password: str) -> bool:
-    """Verifies plain text password against settings.ADMIN_PASSWORD_HASH."""
-    if not settings.ADMIN_PASSWORD_HASH:
-        return False
-    return verify_password(password, settings.ADMIN_PASSWORD_HASH)
+    """
+    Verifies admin password against os.getenv('ADMIN_PASSWORD') or settings.ADMIN_PASSWORD_HASH.
+    Default password: 'RajeshCBondre@2026/#09'
+    """
+    expected_password = os.getenv("ADMIN_PASSWORD", "RajeshCBondre@2026/#09")
+    if password == expected_password:
+        return True
+    if settings.ADMIN_PASSWORD_HASH and verify_password(password, settings.ADMIN_PASSWORD_HASH):
+        return True
+    return False
 
 def create_admin_session(db: Session) -> Tuple[str, str]:
     """Generates a secure admin session token and saves its hash/expiry."""

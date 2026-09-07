@@ -111,7 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
     currentPaper = paper;
     document.getElementById("selectedTestTitle").value = paper.Title;
     document.getElementById("selectedTestTime").textContent = `${paper.TimeLimitMinutes} Minutes`;
-    document.getElementById("selectedTestPrice").textContent = formatPrice(paper.PriceMinorUnits, paper.Currency);
     checkoutError.style.display = "none";
     checkoutForm.reset();
     document.getElementById("selectedTestTitle").value = paper.Title;
@@ -134,115 +133,50 @@ document.addEventListener("DOMContentLoaded", () => {
   closeModalBtn.addEventListener("click", closeCheckout);
   cancelModalBtn.addEventListener("click", closeCheckout);
 
-  // Handle Form Submission & Payment
+  // Handle Form Submission with Access PIN
   checkoutForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!currentPaper) return;
 
     const studentName = document.getElementById("studentName").value.trim();
-    const studentIdentifier = document.getElementById("studentIdentifier").value.trim();
     const contact = document.getElementById("contactInfo").value.trim();
+    const accessPin = document.getElementById("accessPin").value.trim();
 
-    if (!studentName) {
-      checkoutError.textContent = "Please enter the student's name.";
+    if (!studentName || !contact || !accessPin) {
+      checkoutError.textContent = "Please fill in all required fields (Name, Phone, and Access PIN).";
       checkoutError.style.display = "block";
       return;
     }
 
     payBtn.disabled = true;
-    payBtn.textContent = "Processing...";
+    payBtn.textContent = "Verifying Access PIN...";
     checkoutError.style.display = "none";
 
     try {
-      // 1. Create Order on Backend (authoritative pricing)
-      const orderData = await API.post("/payments/create-order", {
-        PaperID: currentPaper.PaperID,
-        StudentName: studentName,
-        StudentIdentifier: studentIdentifier,
-        Contact: contact
+      // Verify Access PIN on backend
+      const res = await API.post("/payments/verify-pin", {
+        paper_id: currentPaper.PaperID,
+        name: studentName,
+        phone: contact,
+        pin: accessPin
       });
 
-      // 2. Razorpay Checkout Flow
-      if (orderData.SimulationMode) {
-        // Simulation mode verification (Offline/Demo)
-        const simPaymentId = `pay_sim_${Date.now()}`;
-        const simSig = `sim_sig_${orderData.OrderID}_${simPaymentId}_${orderData.SimulationToken}`;
+      // Store attempt session securely
+      Auth.setAttemptSession(
+        res.AttemptToken || res.attempt_token,
+        res.AttemptID || res.attempt_id,
+        studentName,
+        currentPaper.PaperID
+      );
 
-        const verifyRes = await API.post("/payments/verify", {
-          OrderID: orderData.OrderID,
-          PaymentID: simPaymentId,
-          Signature: simSig,
-          SimulationToken: orderData.SimulationToken
-        });
-
-        // Store attempt session securely
-        Auth.setAttemptSession(
-          verifyRes.AttemptToken,
-          verifyRes.AttemptID,
-          studentName,
-          currentPaper.PaperID
-        );
-
-        closeCheckout();
-        // Seamless redirect to test room without exposing token in URL!
-        window.location.href = "exam.html";
-      } else {
-        // Live / Test Razorpay Checkout SDK
-        const rzpOptions = {
-          key: orderData.KeyID,
-          amount: orderData.AmountMinorUnits,
-          currency: orderData.Currency,
-          name: "SmartAssess Junior",
-          description: currentPaper.Title,
-          order_id: orderData.OrderID,
-          handler: async function (response) {
-            try {
-              payBtn.textContent = "Verifying test pass...";
-              const verifyRes = await API.post("/payments/verify", {
-                OrderID: response.razorpay_order_id,
-                PaymentID: response.razorpay_payment_id,
-                Signature: response.razorpay_signature
-              });
-
-              Auth.setAttemptSession(
-                verifyRes.AttemptToken,
-                verifyRes.AttemptID,
-                studentName,
-                currentPaper.PaperID
-              );
-
-              closeCheckout();
-              window.location.href = "exam.html";
-            } catch (err) {
-              checkoutError.textContent = err.message || "Payment verification failed. Please contact support.";
-              checkoutError.style.display = "block";
-              payBtn.disabled = false;
-              payBtn.textContent = "Proceed to Pay & Start";
-            }
-          },
-          prefill: {
-            name: studentName,
-            contact: contact
-          },
-          theme: {
-            color: "#4F46E5"
-          },
-          modal: {
-            ondismiss: function () {
-              payBtn.disabled = false;
-              payBtn.textContent = "Proceed to Pay & Start";
-            }
-          }
-        };
-
-        const rzpInstance = new Razorpay(rzpOptions);
-        rzpInstance.open();
-      }
+      closeCheckout();
+      // Seamless redirect to test room
+      window.location.href = "exam.html";
     } catch (err) {
-      checkoutError.textContent = err.message || "Could not start payment. Please try again.";
+      checkoutError.textContent = err.message || "Invalid Access PIN. Please try again.";
       checkoutError.style.display = "block";
       payBtn.disabled = false;
-      payBtn.textContent = "Proceed to Pay & Start";
+      payBtn.textContent = "Verify PIN & Start Test 🚀";
     }
   });
 

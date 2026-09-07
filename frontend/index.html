@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Assessment Hub - Elementary & Middle School Tests</title>
   <link rel="stylesheet" href="css/style.css">
-  <!-- Razorpay Checkout SDK -->
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 
@@ -52,16 +50,16 @@
     </section>
   </main>
 
-  <!-- Parent / Teacher Purchase Modal -->
+  <!-- Student Access PIN Verification Modal -->
   <dialog id="checkoutModal" aria-labelledby="modalTitle">
     <div class="modal-header">
-      <h3 id="modalTitle">Test Enrollment</h3>
+      <h3 id="modalTitle">Start Assessment</h3>
       <button type="button" class="btn-close" id="closeModalBtn" aria-label="Close dialog">&times;</button>
     </div>
     <form id="checkoutForm">
       <div class="modal-body">
         <div class="alert alert-info" style="font-size: 0.85rem; margin-bottom: 1.25rem;">
-          💡 <strong>Parent / Teacher Note:</strong> Once the payment is completed, the student can start the test immediately.
+          🔑 <strong>Access Verification:</strong> Enter your Name, Phone, and the Access PIN provided by your teacher to unlock your test.
         </div>
 
         <div class="form-group">
@@ -69,31 +67,26 @@
           <input type="text" id="selectedTestTitle" class="form-control" readonly style="background: #f1f5f9; font-weight: 600;">
         </div>
 
-        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-          <div style="flex: 1;">
-            <label class="form-label">Duration</label>
-            <div id="selectedTestTime" style="font-weight: 700; color: var(--text-dark);"></div>
-          </div>
-          <div style="flex: 1;">
-            <label class="form-label">Test Fee</label>
-            <div id="selectedTestPrice" style="font-weight: 800; font-size: 1.25rem; color: var(--primary);"></div>
-          </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label">Duration</label>
+          <div id="selectedTestTime" style="font-weight: 700; color: var(--text-dark);"></div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="studentName">Student's Full Name <span style="color: var(--danger);">*</span></label>
           <input type="text" id="studentName" class="form-control" placeholder="e.g. Aarav Patel" required autocomplete="name">
-          <div class="form-hint">This name will appear on the final report card.</div>
+          <div class="form-hint">This name will appear on your report card.</div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="studentIdentifier">Class / Roll Number / Section (Optional)</label>
-          <input type="text" id="studentIdentifier" class="form-control" placeholder="e.g. Class 6-B, Roll No. 14">
+          <label class="form-label" for="contactInfo">Phone Number <span style="color: var(--danger);">*</span></label>
+          <input type="tel" id="contactInfo" class="form-control" placeholder="e.g. 9876543210" required autocomplete="tel">
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="contactInfo">Parent Phone or Email (Optional)</label>
-          <input type="text" id="contactInfo" class="form-control" placeholder="e.g. 9876543210 or parent@example.com">
+          <label class="form-label" for="accessPin">Access PIN <span style="color: var(--danger);">*</span></label>
+          <input type="password" id="accessPin" class="form-control" placeholder="Enter Access PIN" required autocomplete="current-password">
+          <div class="form-hint">Ask your teacher/administrator if you do not have your PIN.</div>
         </div>
 
         <div id="checkoutError" class="alert alert-danger" style="display: none; font-size: 0.9rem;"></div>
@@ -102,7 +95,7 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
         <button type="submit" class="btn btn-primary" id="payBtn">
-          Proceed to Pay &amp; Start
+          Verify PIN &amp; Start Test 🚀
         </button>
       </div>
     </form>

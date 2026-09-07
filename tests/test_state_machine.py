@@ -160,3 +160,29 @@ def test_webhook_signature_tampering(client):
     )
     assert res.status_code == 400
     assert "signature" in res.json()["detail"].lower()
+
+# --- 5. Access PIN Bypass Verification ---
+def test_access_pin_verification(client, sample_paper):
+    # Case A: Incorrect PIN -> 400 Bad Request
+    bad_res = client.post("/payments/verify-pin", json={
+        "paper_id": sample_paper.PaperID,
+        "name": "Kabir Das",
+        "phone": "9876543210",
+        "pin": "invalid_pin"
+    })
+    assert bad_res.status_code == 400
+    assert "invalid access pin" in bad_res.json()["detail"].lower()
+
+    # Case B: Valid PIN -> 200 OK + AttemptToken
+    ok_res = client.post("/payments/verify-pin", json={
+        "paper_id": sample_paper.PaperID,
+        "name": "Kabir Das",
+        "phone": "9876543210",
+        "pin": "02112005"
+    })
+    assert ok_res.status_code == 200
+    data = ok_res.json()
+    assert data["Success"] is True
+    assert "att_" in data["AttemptID"]
+    assert len(data["AttemptToken"]) > 20
+

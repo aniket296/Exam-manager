@@ -1,13 +1,7 @@
 // Global Configuration for Online Assessment Website
 const CONFIG = {
-  // Base URL for the FastAPI Backend.
-  // In development, default to http://localhost:8000.
-  // In production, can be configured or set to backend domain.
-  API_BASE_URL: window.EXAM_API_BASE_URL || (
-    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:8000"
-      : "https://your-api-domain.com"
-  ),
+  // Base URL for the FastAPI Backend (works on localhost, Render, or any host)
+  API_BASE_URL: window.location.origin,
   
   // Storage keys for browser recovery (usability only, backend is authority)
   STORAGE_KEYS: {

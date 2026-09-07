@@ -9,7 +9,7 @@ module.exports = defineConfig({
     timeout: 6000
   },
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://127.0.0.1:8000',
     trace: 'on-first-retry',
     headless: true
   },
@@ -19,19 +19,11 @@ module.exports = defineConfig({
       use: { ...devices['Desktop Chrome'] },
     }
   ],
-  webServer: [
-    {
-      command: '.venv\\Scripts\\python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000',
-      url: 'http://127.0.0.1:8000/health',
-      reuseExistingServer: true,
-      timeout: 15000
-    },
-    {
-      command: '.venv\\Scripts\\python -m http.server 3000 --directory frontend',
-      url: 'http://127.0.0.1:3000',
-      reuseExistingServer: true,
-      timeout: 15000
-    }
-  ]
+  webServer: {
+    command: '.venv\\Scripts\\python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000',
+    url: 'http://127.0.0.1:8000/health',
+    reuseExistingServer: true,
+    timeout: 15000
+  }
 });
 

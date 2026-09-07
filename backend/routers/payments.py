@@ -1,3 +1,4 @@
+import os
 import uuid
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request, Header, status
@@ -7,7 +8,8 @@ from backend.config import settings
 from backend.models import get_db, PaperModel, OrderModel, AttemptModel
 from backend.schemas import (
     PaymentCreateOrderRequest, PaymentCreateOrderResponse,
-    PaymentVerifyRequest, PaymentVerifyResponse
+    PaymentVerifyRequest, PaymentVerifyResponse,
+    PinVerifyRequest, PinVerifyResponse
 )
 from backend.security.rate_limit import check_rate_limit
 from backend.services.razorpay_service import razorpay_service
@@ -219,6 +221,111 @@ def verify_payment(
         AttemptToken=raw_token,
         AttemptID=attempt_id,
         Message="Payment verified successfully. You may now begin your test!"
+    )
+
+@router.post("/verify-pin", response_model=PinVerifyResponse)
+def verify_access_pin(
+    payload: PinVerifyRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Access PIN bypass endpoint.
+    Checks if the provided PIN matches os.getenv("ACCESS_PIN", "02112005").
+    If valid, creates order and paid attempt, syncs to Google Sheets, and returns attempt session token.
+    If invalid, returns HTTP 400.
+    """
+    check_rate_limit(request, max_requests=20, window_seconds=60)
+
+    # 1. Verify Access PIN
+    expected_pin = os.getenv("ACCESS_PIN", "02112005")
+    if payload.pin.strip() != expected_pin.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Access PIN. Please check and try again."
+        )
+
+    # 2. Verify Assessment Paper
+    paper = db.query(PaperModel).filter(PaperModel.PaperID == payload.paper_id.strip()).first()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Assessment paper not found.")
+
+    student_name = payload.name.strip()
+    phone_contact = payload.phone.strip() if payload.phone else ""
+    now = utc_now()
+
+    # 3. Create Order Record (Marked as PAID via PIN)
+    order_id = f"ord_pin_{uuid.uuid4().hex[:10]}"
+    payment_id = f"pay_pin_{uuid.uuid4().hex[:10]}"
+
+    new_order = OrderModel(
+        OrderID=order_id,
+        PaperID=paper.PaperID,
+        PaperVersion=paper.Version,
+        AmountMinorUnits=paper.PriceMinorUnits,
+        Currency=paper.Currency,
+        Status="PAID",
+        StudentName=student_name,
+        StudentIdentifier=phone_contact,
+        Contact=phone_contact,
+        PaymentID=payment_id,
+        CreatedAt=now,
+        ExpiresAt=now + timedelta(hours=24)
+    )
+    db.add(new_order)
+
+    # 4. Generate Authoritative Exam Credentials
+    attempt_id = f"att_{uuid.uuid4().hex[:12]}"
+    raw_token, token_hash, token_expires_iso = generate_exam_credential()
+
+    new_attempt = AttemptModel(
+        AttemptID=attempt_id,
+        OrderID=order_id,
+        PaymentID=payment_id,
+        Name=student_name,
+        StudentIdentifier=phone_contact,
+        PhoneOrContact=phone_contact,
+        PaperID=paper.PaperID,
+        PaperVersion=paper.Version,
+        AmountMinorUnits=paper.PriceMinorUnits,
+        Currency=paper.Currency,
+        Status="PAID",
+        AttemptTokenHash=token_hash,
+        TokenCreatedAt=now,
+        TokenExpiresAt=now + timedelta(hours=settings.ATTEMPT_TOKEN_EXPIRE_HOURS),
+        Timestamp=now
+    )
+    db.add(new_attempt)
+    db.commit()
+
+    # 5. Sync to Google Sheets
+    try:
+        sheets_service.sync_attempt({
+            "AttemptID": new_attempt.AttemptID,
+            "OrderID": new_attempt.OrderID,
+            "PaymentID": new_attempt.PaymentID,
+            "Name": new_attempt.Name,
+            "StudentIdentifier": new_attempt.StudentIdentifier,
+            "PhoneOrContact": new_attempt.PhoneOrContact,
+            "PaperID": new_attempt.PaperID,
+            "PaperVersion": new_attempt.PaperVersion,
+            "AmountMinorUnits": new_attempt.AmountMinorUnits,
+            "Currency": new_attempt.Currency,
+            "Status": "PAID",
+            "AttemptTokenHash": new_attempt.AttemptTokenHash,
+            "TokenCreatedAt": to_iso(new_attempt.TokenCreatedAt),
+            "TokenExpiresAt": to_iso(new_attempt.TokenExpiresAt),
+            "StrikeCount": 0,
+            "Timestamp": to_iso(new_attempt.Timestamp)
+        })
+    except Exception:
+        pass
+
+    return PinVerifyResponse(
+        Success=True,
+        AttemptToken=raw_token,
+        AttemptID=attempt_id,
+        Message="Access PIN verified successfully. Starting assessment."
     )
 
 @router.post("/webhook")

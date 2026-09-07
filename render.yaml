@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: exam-manager
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ACCESS_PIN
+        value: "02112005"
+      - key: ADMIN_PASSWORD
+        value: "RajeshCBondre@2026/#09"
+      - key: ENVIRONMENT
+        value: "production"
+      - key: PYTHON_VERSION
+        value: "3.11.9"

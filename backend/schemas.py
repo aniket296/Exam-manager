@@ -164,6 +164,19 @@ class PaymentVerifyResponse(BaseModel):
     AttemptID: str
     Message: str
 
+# Access PIN Bypass Schemas
+class PinVerifyRequest(BaseModel):
+    paper_id: str = Field(..., min_length=1, max_length=64)
+    name: str = Field(..., min_length=1, max_length=128)
+    phone: Optional[str] = Field("", max_length=64)
+    pin: str = Field(..., min_length=1, max_length=64)
+
+class PinVerifyResponse(BaseModel):
+    Success: bool
+    AttemptToken: str
+    AttemptID: str
+    Message: str
+
 # Exam Schemas
 class ExamStartResponse(BaseModel):
     AttemptID: str

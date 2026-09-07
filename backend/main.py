@@ -1,14 +1,18 @@
 import json
 import logging
+from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.orm import Session
 
 from backend.config import settings
-from backend.models import init_db, SessionLocal, PaperModel
+from backend.models import init_db, SessionLocal, PaperModel, get_db
 from backend.routers import papers, admin, payments, exams
+from backend.security.attempt_auth import attempt_bearer, get_current_attempt
 from backend.utils.time import utc_now
 
 # Configure logging
@@ -138,10 +142,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration (Restricted Origins - Section 18)
-allowed_origins = [settings.FRONTEND_URL.rstrip("/")]
+# CORS Configuration (Unified & Production Origins)
+allowed_origins = [settings.FRONTEND_URL.rstrip("/")] if settings.FRONTEND_URL else []
 if settings.ENVIRONMENT == "development":
     allowed_origins.extend([
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:5500",
@@ -153,6 +159,7 @@ if settings.ENVIRONMENT == "development":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"^https://.*\.onrender\.com$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -198,6 +205,57 @@ async def generic_exception_handler(request: Request, exc: Exception):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "A temporary service error occurred. Please try again in a few moments."}
     )
+
+# Resolve absolute path to frontend directory (one level up from backend)
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+# Mount static asset directories
+if (FRONTEND_DIR / "css").exists():
+    app.mount("/css", StaticFiles(directory=str(FRONTEND_DIR / "css")), name="css")
+if (FRONTEND_DIR / "js").exists():
+    app.mount("/js", StaticFiles(directory=str(FRONTEND_DIR / "js")), name="js")
+
+# Frontend Page Routes
+@app.get("/", include_in_schema=False)
+def serve_index():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+@app.get("/index.html", include_in_schema=False)
+def serve_index_html():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+@app.get("/admin", include_in_schema=False)
+def serve_admin():
+    return FileResponse(FRONTEND_DIR / "admin.html")
+
+@app.get("/admin.html", include_in_schema=False)
+def serve_admin_html():
+    return FileResponse(FRONTEND_DIR / "admin.html")
+
+@app.get("/result", include_in_schema=False)
+def serve_result():
+    return FileResponse(FRONTEND_DIR / "result.html")
+
+@app.get("/result.html", include_in_schema=False)
+def serve_result_html():
+    return FileResponse(FRONTEND_DIR / "result.html")
+
+@app.get("/exam", include_in_schema=False)
+async def serve_exam(request: Request, db: Session = Depends(get_db)):
+    auth = request.headers.get("authorization", "")
+    accept = request.headers.get("accept", "")
+    # If request contains Bearer token or explicitly expects JSON, handle via exam API
+    if auth.lower().startswith("bearer ") or "application/json" in accept.lower():
+        credentials = await attempt_bearer(request)
+        attempt = get_current_attempt(credentials, db)
+        return exams.get_or_start_exam(request, attempt, db)
+    # Otherwise, serve the HTML page to browser
+    return FileResponse(FRONTEND_DIR / "exam.html")
+
+@app.get("/exam.html", include_in_schema=False)
+def serve_exam_html():
+    return FileResponse(FRONTEND_DIR / "exam.html")
 
 # Include Routers
 app.include_router(papers.router)

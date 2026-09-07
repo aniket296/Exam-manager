@@ -18,6 +18,41 @@ class GoogleSheetsService:
         self.is_configured = False
         self._init_client()
 
+    def _find_credentials_file(self) -> Optional[str]:
+        """
+        Safely locates Google Sheets service account credentials file across multiple environments:
+        1. os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        2. /etc/secrets/credentials.json (Render default mounted secret file)
+        3. Local project root and backend directory fallback
+        """
+        # 1. Environment variable path
+        env_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if env_path and os.path.exists(env_path):
+            return env_path
+
+        # 1b. Configured settings path
+        if settings.GOOGLE_SERVICE_ACCOUNT_PATH and os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_PATH):
+            return settings.GOOGLE_SERVICE_ACCOUNT_PATH
+
+        # 2. Render secret file path
+        render_path = "/etc/secrets/credentials.json"
+        if os.path.exists(render_path):
+            return render_path
+
+        # 3. Local project root and backend directory fallbacks
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        candidate_paths = [
+            os.path.join(base_dir, "credentials.json"),
+            os.path.join(backend_dir, "credentials.json"),
+            "credentials.json"
+        ]
+        for candidate in candidate_paths:
+            if os.path.exists(candidate):
+                return candidate
+
+        return None
+
     def _init_client(self):
         try:
             import gspread
@@ -35,9 +70,12 @@ class GoogleSheetsService:
                 except Exception as e:
                     logger.error(f"Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
 
-            elif settings.GOOGLE_SERVICE_ACCOUNT_PATH and os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_PATH):
-                with open(settings.GOOGLE_SERVICE_ACCOUNT_PATH, "r", encoding="utf-8") as f:
-                    service_account_info = json.load(f)
+            if not service_account_info:
+                cred_file = self._find_credentials_file()
+                if cred_file and os.path.exists(cred_file):
+                    logger.info(f"Loading Google Sheets credentials from: {cred_file}")
+                    with open(cred_file, "r", encoding="utf-8") as f:
+                        service_account_info = json.load(f)
 
             if service_account_info and settings.GOOGLE_SHEET_ID:
                 creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
@@ -47,7 +85,7 @@ class GoogleSheetsService:
                 self._ensure_worksheets()
                 logger.info("Successfully connected to Google Sheets.")
             else:
-                logger.info("Google Sheets not fully configured. Operating in local storage mode.")
+                logger.info("Google Sheets not fully configured. Operating safely in local storage mode.")
         except Exception as e:
             logger.warning(f"Google Sheets initialization skipped or failed: {e}. Using local store.")
             self.is_configured = False
