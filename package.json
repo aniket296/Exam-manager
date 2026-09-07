@@ -1,0 +1,19 @@
+{
+  "name": "exam-manager",
+  "version": "1.0.0",
+  "description": "A complete, responsive, child-friendly, and secure **browser-based online assessment website** designed specifically for school students up to approximately the 7th standard.",
+  "main": "playwright.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

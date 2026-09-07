@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assessment Room - SmartAssess Junior</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/exam.css">
+</head>
+<body class="exam-page">
+
+  <!-- Header Bar -->
+  <header class="exam-header" id="examHeader" style="display: none;">
+    <div class="exam-header-inner">
+      <div class="exam-title-wrap">
+        <span class="exam-paper-name" id="examTitleHeader">Assessment</span>
+        <span class="exam-student-badge" id="examStudentNameHeader">Student</span>
+      </div>
+      <div class="exam-timer-box" id="examTimerBox" aria-live="polite">
+        <span>⏱️</span>
+        <span id="timerDisplay">--:--</span>
+      </div>
+    </div>
+    <div class="exam-progress-bar">
+      <div class="exam-progress-fill" id="progressFill"></div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main id="examMainContainer">
+
+    <!-- Pre-Exam Instructions Card -->
+    <div class="instructions-card" id="preExamCard">
+      <div style="font-size: 3rem; margin-bottom: 0.5rem;">🌟</div>
+      <h2 id="preExamTitle">Ready for your test?</h2>
+      <p style="color: var(--text-muted); font-size: 1.05rem;" id="preExamSubtitle">Take a deep breath and sit comfortably.</p>
+
+      <ul class="instructions-list">
+        <li><span class="check-icon">✓</span> Sit somewhere quiet where you can focus.</li>
+        <li><span class="check-icon">✓</span> Keep this test screen open until you finish.</li>
+        <li><span class="check-icon">✓</span> Your timer will start as soon as you press Start Test.</li>
+        <li><span class="check-icon">✓</span> Read every question carefully before answering.</li>
+        <li id="markingSchemeItem"><span class="check-icon">✓</span> <strong>Marking:</strong> Correct +4 marks | Unanswered 0 marks</li>
+      </ul>
+
+      <div id="preExamError" class="alert alert-danger" style="display: none; margin-bottom: 1.25rem;"></div>
+
+      <button type="button" class="btn btn-primary btn-lg btn-block" id="startExamBtn">
+        🚀 Start Test Now
+      </button>
+    </div>
+
+    <!-- Active Exam Room (Hidden until started) -->
+    <div class="exam-layout" id="activeExamRoom" style="display: none;">
+
+      <!-- Left / Top: Active Question Box -->
+      <section class="question-card" aria-label="Question content">
+        <div class="question-meta-bar">
+          <span class="question-counter" id="questionCounter">Question 1 of 10</span>
+          <span class="question-marks-badge" id="questionMarks">4 Marks</span>
+        </div>
+
+        <div class="question-text" id="questionText"></div>
+
+        <div class="question-image-wrap" id="questionImageWrap" style="display: none;">
+          <img id="questionImage" class="question-image" src="" alt="Question illustration">
+        </div>
+
+        <!-- MCQ Options Area -->
+        <div class="options-list" id="optionsContainer"></div>
+
+        <!-- Text Answer Area -->
+        <div class="text-answer-box" id="textAnswerContainer" style="display: none;">
+          <label class="form-label" for="textAnswerInput">Type your answer below:</label>
+          <input type="text" id="textAnswerInput" class="text-answer-input" placeholder="Type here..." autocomplete="off">
+        </div>
+
+        <!-- Navigation Action Bar -->
+        <div class="exam-nav-bar">
+          <button type="button" class="btn btn-secondary" id="prevQuestionBtn">
+            ← Previous
+          </button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-primary" id="nextQuestionBtn">
+              Next Question →
+            </button>
+            <button type="button" class="btn btn-success" id="submitExamBtn">
+              Submit Test ✓
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right / Bottom: Question Palette & Overview -->
+      <aside class="question-palette-card" aria-label="Question overview">
+        <h3 class="palette-title">Question Palette</h3>
+        <div class="palette-grid" id="paletteGrid"></div>
+
+        <div class="palette-legend">
+          <div class="legend-item">
+            <span class="legend-dot answered"></span>
+            <span>Answered</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot unanswered"></span>
+            <span>Not yet answered</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Submit Confirmation Dialog -->
+  <dialog id="confirmSubmitDialog" aria-labelledby="confirmTitle">
+    <div class="modal-header">
+      <h3 id="confirmTitle">Ready to Finish?</h3>
+    </div>
+    <div class="modal-body" style="text-align: center;">
+      <div style="font-size: 2.75rem; margin-bottom: 0.5rem;">🏁</div>
+      <p style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Are you sure you want to submit your test?</p>
+      <p id="submitSummaryText" style="color: var(--text-muted); font-size: 1rem;">You answered 0 out of 0 questions.</p>
+    </div>
+    <div class="modal-footer" style="justify-content: center;">
+      <button type="button" class="btn btn-secondary" id="cancelSubmitBtn">Go Back</button>
+      <button type="button" class="btn btn-success btn-lg" id="finalSubmitBtn">Yes, Submit My Test</button>
+    </div>
+  </dialog>
+
+  <!-- Anti-Cheat Polite Warning Dialog -->
+  <dialog id="antiCheatDialog" aria-labelledby="warningTitle">
+    <div class="modal-body warning-popup">
+      <div class="warning-icon">📢</div>
+      <h3 id="warningTitle" style="font-size: 1.35rem; font-weight: 800; margin-bottom: 0.5rem;">Please Stay on the Test Screen</h3>
+      <p id="antiCheatMessage" style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1.25rem;">
+        Your test is still open. Please return to your test questions.
+      </p>
+      <button type="button" class="btn btn-primary btn-lg" id="closeWarningBtn">
+        Return to Test
+      </button>
+    </div>
+  </dialog>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/exam.js"></script>
+</body>
+</html>
+

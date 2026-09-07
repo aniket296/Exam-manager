@@ -1,0 +1,33 @@
+# Python virtual environment
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment secrets and credentials
+.env
+*.json
+!package.json
+service_account*.json
+
+# SQLite database
+*.db
+*.sqlite
+*.sqlite3
+
+# Pytest and coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+

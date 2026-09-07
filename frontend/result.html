@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assessment Report Card - SmartAssess Junior</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/result.css">
+  <!-- jsPDF Library for Report Card Generation (Section 48) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="logo-wrap" aria-label="Smart Assessment Home">
+        <div class="logo-icon">★</div>
+        <div class="logo-title">SmartAssess<span class="logo-tag">Junior</span></div>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="btn btn-secondary" style="font-size: 0.85rem; min-height: 40px;">All Tests</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="result-container">
+    <div class="result-card" id="resultCard">
+
+      <div class="result-badge">🏆</div>
+      <h1>Super Job!</h1>
+      <p class="result-student-name" id="studentNameDisplay">Congratulations on completing your assessment!</p>
+      <p id="paperTitleDisplay" style="font-weight: 700; color: var(--primary); margin-bottom: 1.5rem;"></p>
+
+      <!-- Score Callout -->
+      <div class="score-callout">
+        <div class="score-number" id="scoreDisplay">--</div>
+        <div class="score-max" id="maxMarksDisplay">out of -- marks</div>
+        <div class="score-percentage" id="percentageDisplay">--% Accuracy</div>
+      </div>
+
+      <!-- Performance Stats -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val correct" id="correctCountDisplay">0</div>
+          <div class="stat-label">Correct Answers</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val wrong" id="wrongCountDisplay">0</div>
+          <div class="stat-label">Incorrect Answers</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val skipped" id="skippedCountDisplay">0</div>
+          <div class="stat-label">Unanswered</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="result-actions">
+        <button type="button" class="btn btn-primary btn-lg" id="downloadPdfBtn">
+          📄 Download Report Card (PDF)
+        </button>
+        <a href="index.html" class="btn btn-secondary btn-lg">
+          🏠 Return to All Tests
+        </a>
+      </div>
+
+      <!-- Question Breakdown (Controlled by ShowAnswerKey) -->
+      <section class="breakdown-section" id="breakdownSection" style="display: none;">
+        <h2 class="breakdown-title" id="breakdownHeading">Question Review</h2>
+        <div id="breakdownList"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 SmartAssess Junior. Keep learning and shining bright!</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/result.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Portal - SmartAssess Junior</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- Admin Site Header -->
+  <header class="admin-header">
+    <div class="container nav-wrap">
+      <div class="logo-wrap">
+        <div class="logo-icon">⚙️</div>
+        <div class="logo-title">SmartAssess<span class="admin-badge">Admin</span></div>
+      </div>
+      <div class="admin-nav" id="adminHeaderNav" style="display: none;">
+        <span id="adminSessionInfo" style="font-size: 0.85rem; color: #cbd5e1;">Logged In</span>
+        <button type="button" class="btn btn-secondary" id="logoutBtn" style="font-size: 0.85rem; min-height: 38px;">
+          Log Out
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container admin-content">
+
+    <!-- Admin Login Card (Shown when unauthenticated) -->
+    <div id="loginCard" class="card" style="max-width: 440px; margin: 3rem auto; background: #ffffff; border: 2px solid var(--border); border-radius: var(--radius-md); padding: 2rem; box-shadow: var(--shadow-md);">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔐</div>
+        <h2 style="font-size: 1.5rem; font-weight: 800;">Exam Provider Login</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Sign in to create and manage assessment papers.</p>
+      </div>
+
+      <div id="loginError" class="alert alert-danger" style="display: none;"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="adminPassword">Admin Password</label>
+          <input type="password" id="adminPassword" class="form-control" placeholder="Enter password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+          Sign In
+        </button>
+      </form>
+    </div>
+
+    <!-- Admin Dashboard View (Shown when authenticated) -->
+    <div id="dashboardView" style="display: none;">
+
+      <!-- Tabs Bar -->
+      <div class="admin-tabs">
+        <button type="button" class="tab-btn active" id="tabPapersBtn">Assessment Papers</button>
+        <button type="button" class="tab-btn" id="tabResultsBtn">Student Attempts</button>
+      </div>
+
+      <!-- Tab 1: Papers Management -->
+      <div id="tabPapersContent">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.35rem; font-weight: 800;">Managed Papers</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Create, edit draft tests, and publish papers for students.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="openNewPaperModalBtn">
+            + Create New Paper
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Price</th>
+                <th>Time</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="papersTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted);">Loading papers...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Student Attempts View -->
+      <div id="tabResultsContent" style="display: none;">
+        <div style="margin-bottom: 1.25rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 800;">Assessment Attempts</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Historical student submissions and authoritative scores.</p>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Roll / Class</th>
+                <th>Paper Title</th>
+                <th>Score</th>
+                <th>Strikes</th>
+                <th>Status</th>
+                <th>Completed At</th>
+              </tr>
+            </thead>
+            <tbody id="attemptsTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted);">Loading attempts...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Paper Editor Modal -->
+  <dialog id="paperEditorModal" aria-labelledby="editorModalTitle" style="max-width: 780px; width: 95%;">
+    <div class="modal-header">
+      <h3 id="editorModalTitle">Create Assessment Paper</h3>
+      <button type="button" class="btn-close" id="closeEditorBtn">&times;</button>
+    </div>
+    <form id="paperEditorForm">
+      <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+        
+        <div id="editorError" class="alert alert-danger" style="display: none;"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="paperTitleInput">Test Title <span style="color: var(--danger);">*</span></label>
+          <input type="text" id="paperTitleInput" class="form-control" placeholder="e.g. Grade 6 Science & GK Olympiad" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="paperPriceInput">Price in INR (₹)</label>
+            <input type="number" id="paperPriceInput" class="form-control" min="0" step="1" value="49">
+            <div class="form-hint">Enter 0 for free test.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="paperTimeInput">Time Limit (Minutes)</label>
+            <input type="number" id="paperTimeInput" class="form-control" min="1" max="300" value="20" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="antiCheatSelect">Anti-Cheat Policy</label>
+            <select id="antiCheatSelect" class="form-control">
+              <option value="AUTO_SUBMIT_ON_3">Auto-submit on 3 Strikes</option>
+              <option value="AUTO_SUBMIT_ON_5">Auto-submit on 5 Strikes</option>
+              <option value="WARNING_ONLY">Warnings Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1rem 0; padding: 0.875rem; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="negMarkingCheckbox"> Enable Negative Marking (-1 for incorrect)
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="showAnswerKeyCheckbox" checked> Show Answer Key on Report Card
+          </label>
+        </div>
+
+        <!-- Questions Section -->
+        <div style="margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.1rem; font-weight: 700;">Questions (<span id="questionCountLabel">0</span>)</h4>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="button" class="btn btn-secondary" id="addMcqBtn" style="font-size: 0.85rem; min-height: 38px;">
+                + Add MCQ
+              </button>
+              <button type="button" class="btn btn-secondary" id="addTextBtn" style="font-size: 0.85rem; min-height: 38px;">
+                + Add Text Question
+              </button>
+            </div>
+          </div>
+
+          <div id="questionsBuilderList"></div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelEditorBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="savePaperBtn">Save Draft Paper</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
+

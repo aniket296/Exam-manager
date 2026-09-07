@@ -1,0 +1,129 @@
+/* Admin Portal Styles */
+.admin-header {
+  background-color: #1e1b4b;
+  color: #ffffff;
+  padding: 1rem 0;
+}
+
+.admin-header .logo-title {
+  color: #ffffff;
+}
+
+.admin-badge {
+  background-color: #4f46e5;
+  color: #ffffff;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+  margin-left: 0.5rem;
+}
+
+.admin-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.admin-content {
+  padding: 2rem 0;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Table styles */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  background-color: #f8fafc;
+  padding: 0.875rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1.5px solid var(--border);
+  text-transform: uppercase;
+}
+
+.admin-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge.draft { background-color: #f1f5f9; color: #475569; }
+.status-badge.published { background-color: #d1fae5; color: #065f46; }
+.status-badge.archived { background-color: #fee2e2; color: #991b1b; }
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Question Editor Box */
+.q-editor-card {
+  background: #f8fafc;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.q-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.q-editor-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
