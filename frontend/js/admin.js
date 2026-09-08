@@ -149,6 +149,14 @@ document.addEventListener("DOMContentLoaded", () => {
           pubBtn.textContent = "Publish";
           pubBtn.addEventListener("click", () => handlePublish(p.PaperID));
           tdActions.appendChild(pubBtn);
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "btn btn-danger";
+          delBtn.style.cssText = "font-size: 0.8rem; min-height: 32px; padding: 0.3rem 0.6rem;";
+          delBtn.textContent = "🗑 Delete";
+          delBtn.addEventListener("click", () => handleDelete(p.PaperID, p.Title));
+          tdActions.appendChild(delBtn);
+
         } else if (p.Status === "PUBLISHED") {
           const dupBtn = document.createElement("button");
           dupBtn.className = "btn btn-secondary";
@@ -170,6 +178,13 @@ document.addEventListener("DOMContentLoaded", () => {
           dupBtn.textContent = "Duplicate to Draft";
           dupBtn.addEventListener("click", () => handleDuplicate(p.PaperID));
           tdActions.appendChild(dupBtn);
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "btn btn-danger";
+          delBtn.style.cssText = "font-size: 0.8rem; min-height: 32px; padding: 0.3rem 0.6rem;";
+          delBtn.textContent = "🗑 Delete";
+          delBtn.addEventListener("click", () => handleDelete(p.PaperID, p.Title));
+          tdActions.appendChild(delBtn);
         }
 
         tr.appendChild(tdTitle);
@@ -274,6 +289,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function handleDelete(paperId, paperTitle) {
+    if (!confirm(`⚠️ Permanently delete "${paperTitle}"?\n\nThis cannot be undone. Active attempts will block deletion.`)) return;
+    try {
+      await API.delete(`/admin/papers/${paperId}`, Auth.getAdminHeaders());
+      loadPapers();
+    } catch (err) {
+      alert(err.message || "Delete failed. The paper may have active attempts — archive it instead.");
+    }
+  }
+
   // Paper Editor Modal
   openNewPaperModalBtn.addEventListener("click", () => {
     editingPaperId = null;
@@ -312,30 +337,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Builder Questions Management
   addMcqBtn.addEventListener("click", () => {
-    const qid = `Q${builderQuestions.length + 1}`;
+    const qid = `Q${Date.now()}`;
     builderQuestions.push({
       QuestionID: qid,
       QuestionText: "",
+      image: null,
       ImageURL: "",
       Type: "MCQ",
       Options: [
-        { OptionID: "OPT1", Text: "" },
-        { OptionID: "OPT2", Text: "" },
-        { OptionID: "OPT3", Text: "" },
-        { OptionID: "OPT4", Text: "" }
+        { OptionID: "OPT1", Text: "", image: null },
+        { OptionID: "OPT2", Text: "", image: null },
+        { OptionID: "OPT3", Text: "", image: null },
+        { OptionID: "OPT4", Text: "", image: null }
       ],
       CorrectAnswer: "OPT1",
       MarksCorrect: 4.0,
       MarksNegative: 1.0
     });
     renderBuilderQuestions();
+    // Scroll to newly added card
+    setTimeout(() => {
+      const cards = questionsBuilderList.querySelectorAll(".q-editor-card");
+      if (cards.length) cards[cards.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 50);
   });
 
   addTextBtn.addEventListener("click", () => {
-    const qid = `Q${builderQuestions.length + 1}`;
+    const qid = `Q${Date.now()}`;
     builderQuestions.push({
       QuestionID: qid,
       QuestionText: "",
+      image: null,
       ImageURL: "",
       Type: "Text",
       Options: [],
@@ -344,8 +376,96 @@ document.addEventListener("DOMContentLoaded", () => {
       MarksNegative: 0.0
     });
     renderBuilderQuestions();
+    setTimeout(() => {
+      const cards = questionsBuilderList.querySelectorAll(".q-editor-card");
+      if (cards.length) cards[cards.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 50);
   });
 
+  // ── File → Base64 helper ──────────────────────────────────────────────────
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => reject(new Error("Failed to read image"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ── Image picker widget factory ───────────────────────────────────────────
+  function makeImagePicker(labelText, currentBase64, onUpdate) {
+    const wrap = document.createElement("div");
+    wrap.className = "img-picker-wrap";
+
+    const label = document.createElement("span");
+    label.className = "img-picker-label";
+    label.textContent = labelText;
+    wrap.appendChild(label);
+
+    const preview = document.createElement("img");
+    preview.className = "img-preview";
+    if (currentBase64) {
+      preview.src = currentBase64;
+      preview.style.display = "block";
+    } else {
+      preview.style.display = "none";
+    }
+    wrap.appendChild(preview);
+
+    const actionsRow = document.createElement("div");
+    actionsRow.className = "img-picker-actions";
+
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.style.display = "none";
+
+    const chooseBtn = document.createElement("button");
+    chooseBtn.type = "button";
+    chooseBtn.className = "btn btn-secondary opt-img-btn";
+    chooseBtn.textContent = currentBase64 ? "📷 Change" : "📷 Add Image";
+    chooseBtn.addEventListener("click", () => fileInput.click());
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn btn-danger opt-img-btn";
+    removeBtn.textContent = "✕ Remove";
+    removeBtn.style.display = currentBase64 ? "inline-flex" : "none";
+    removeBtn.addEventListener("click", () => {
+      preview.src = "";
+      preview.style.display = "none";
+      chooseBtn.textContent = "📷 Add Image";
+      removeBtn.style.display = "none";
+      onUpdate(null);
+    });
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Image is too large. Please use an image under 2 MB.");
+        return;
+      }
+      try {
+        const b64 = await readFileAsBase64(file);
+        preview.src = b64;
+        preview.style.display = "block";
+        chooseBtn.textContent = "📷 Change";
+        removeBtn.style.display = "inline-flex";
+        onUpdate(b64);
+      } catch (e) {
+        alert("Could not read image file.");
+      }
+    });
+
+    actionsRow.appendChild(fileInput);
+    actionsRow.appendChild(chooseBtn);
+    actionsRow.appendChild(removeBtn);
+    wrap.appendChild(actionsRow);
+    return wrap;
+  }
+
+  // ── Main builder renderer ─────────────────────────────────────────────────
   function renderBuilderQuestions() {
     questionsBuilderList.innerHTML = "";
     questionCountLabel.textContent = builderQuestions.length;
@@ -354,84 +474,236 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = document.createElement("div");
       card.className = "q-editor-card";
 
+      // ── Header ─────────────────────────────────────────
       const header = document.createElement("div");
       header.className = "q-editor-header";
-      header.innerHTML = `
-        <span class="q-editor-title">#${idx + 1} (${q.Type}) - ID: ${escapeHtml(q.QuestionID)}</span>
-      `;
+
+      const titleSpan = document.createElement("span");
+      titleSpan.className = "q-editor-title";
+      titleSpan.textContent = `#${idx + 1} ${q.Type}`;
+      header.appendChild(titleSpan);
+
+      const controls = document.createElement("div");
+      controls.className = "q-editor-controls";
+
+      // Move Up
+      if (idx > 0) {
+        const upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.className = "btn btn-secondary";
+        upBtn.style.cssText = "font-size: 0.75rem; min-height: 28px; padding: 0.2rem 0.5rem;";
+        upBtn.title = "Move Up";
+        upBtn.textContent = "▲";
+        upBtn.addEventListener("click", () => {
+          [builderQuestions[idx - 1], builderQuestions[idx]] = [builderQuestions[idx], builderQuestions[idx - 1]];
+          renderBuilderQuestions();
+        });
+        controls.appendChild(upBtn);
+      }
+
+      // Move Down
+      if (idx < builderQuestions.length - 1) {
+        const downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.className = "btn btn-secondary";
+        downBtn.style.cssText = "font-size: 0.75rem; min-height: 28px; padding: 0.2rem 0.5rem;";
+        downBtn.title = "Move Down";
+        downBtn.textContent = "▼";
+        downBtn.addEventListener("click", () => {
+          [builderQuestions[idx], builderQuestions[idx + 1]] = [builderQuestions[idx + 1], builderQuestions[idx]];
+          renderBuilderQuestions();
+        });
+        controls.appendChild(downBtn);
+      }
+
+      // Duplicate
+      const dupBtn = document.createElement("button");
+      dupBtn.type = "button";
+      dupBtn.className = "btn btn-secondary";
+      dupBtn.style.cssText = "font-size: 0.75rem; min-height: 28px; padding: 0.2rem 0.5rem;";
+      dupBtn.textContent = "⧉ Duplicate";
+      dupBtn.addEventListener("click", () => {
+        const clone = JSON.parse(JSON.stringify(q));
+        clone.QuestionID = `Q${Date.now()}`;
+        builderQuestions.splice(idx + 1, 0, clone);
+        renderBuilderQuestions();
+      });
+      controls.appendChild(dupBtn);
+
+      // Remove
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "btn btn-danger";
       removeBtn.style.cssText = "font-size: 0.75rem; min-height: 28px; padding: 0.2rem 0.5rem;";
-      removeBtn.textContent = "Remove";
+      removeBtn.textContent = "✕ Remove";
       removeBtn.addEventListener("click", () => {
         builderQuestions.splice(idx, 1);
         renderBuilderQuestions();
       });
-      header.appendChild(removeBtn);
+      controls.appendChild(removeBtn);
+
+      header.appendChild(controls);
       card.appendChild(header);
 
-      // Question Text Input
+      // ── Marks row ───────────────────────────────────────
+      const marksRow = document.createElement("div");
+      marksRow.className = "q-editor-marks-row";
+
+      const marksCorrectGroup = document.createElement("div");
+      marksCorrectGroup.className = "form-group";
+      marksCorrectGroup.innerHTML = `<label class="form-label" style="font-size:0.8rem;">✅ Marks (Correct)</label>`;
+      const marksCorrectInput = document.createElement("input");
+      marksCorrectInput.type = "number";
+      marksCorrectInput.className = "form-control";
+      marksCorrectInput.style.fontSize = "0.9rem";
+      marksCorrectInput.min = "0";
+      marksCorrectInput.step = "0.5";
+      marksCorrectInput.value = q.MarksCorrect;
+      marksCorrectInput.addEventListener("input", (e) => { q.MarksCorrect = parseFloat(e.target.value) || 0; });
+      marksCorrectGroup.appendChild(marksCorrectInput);
+      marksRow.appendChild(marksCorrectGroup);
+
+      const marksNegGroup = document.createElement("div");
+      marksNegGroup.className = "form-group";
+      marksNegGroup.innerHTML = `<label class="form-label" style="font-size:0.8rem;">❌ Deduction (Wrong)</label>`;
+      const marksNegInput = document.createElement("input");
+      marksNegInput.type = "number";
+      marksNegInput.className = "form-control";
+      marksNegInput.style.fontSize = "0.9rem";
+      marksNegInput.min = "0";
+      marksNegInput.step = "0.5";
+      marksNegInput.value = q.MarksNegative;
+      marksNegInput.addEventListener("input", (e) => { q.MarksNegative = parseFloat(e.target.value) || 0; });
+      marksNegGroup.appendChild(marksNegInput);
+      marksRow.appendChild(marksNegGroup);
+
+      card.appendChild(marksRow);
+
+      // ── Question Text ───────────────────────────────────
       const textGroup = document.createElement("div");
       textGroup.className = "form-group";
-      textGroup.innerHTML = `
-        <label class="form-label" style="font-size: 0.85rem;">Question Text</label>
-        <textarea class="form-control" rows="2" style="font-size: 0.9rem;" required></textarea>
-      `;
-      const textarea = textGroup.querySelector("textarea");
+      textGroup.innerHTML = `<label class="form-label" style="font-size: 0.85rem;">Question Text <span style="color:var(--danger)">*</span></label>`;
+      const textarea = document.createElement("textarea");
+      textarea.className = "form-control";
+      textarea.rows = 2;
+      textarea.style.fontSize = "0.9rem";
+      textarea.required = true;
+      textarea.placeholder = "Type your question here…";
       textarea.value = q.QuestionText;
       textarea.addEventListener("input", (e) => { q.QuestionText = e.target.value; });
+      textGroup.appendChild(textarea);
       card.appendChild(textGroup);
 
-      // Optional Image URL
-      const imgGroup = document.createElement("div");
-      imgGroup.className = "form-group";
-      imgGroup.innerHTML = `
-        <label class="form-label" style="font-size: 0.85rem;">Image URL (Optional HTTPS)</label>
-        <input type="text" class="form-control" style="font-size: 0.9rem;" placeholder="https://...">
-      `;
-      const imgInput = imgGroup.querySelector("input");
-      imgInput.value = q.ImageURL || "";
-      imgInput.addEventListener("input", (e) => { q.ImageURL = e.target.value; });
-      card.appendChild(imgGroup);
+      // ── Question Image Picker ───────────────────────────
+      const qImgPicker = makeImagePicker(
+        "📷 Question Image (optional, stored as Base64)",
+        q.image || (q.ImageURL && q.ImageURL.startsWith("data:") ? q.ImageURL : null),
+        (b64) => { q.image = b64; }
+      );
+      card.appendChild(qImgPicker);
 
+      // ── MCQ Options ─────────────────────────────────────
       if (q.Type === "MCQ") {
-        const optsContainer = document.createElement("div");
-        optsContainer.style.marginBottom = "0.75rem";
-        optsContainer.innerHTML = `<label class="form-label" style="font-size: 0.85rem;">Options (Select the correct answer radio)</label>`;
+        const optsLabel = document.createElement("label");
+        optsLabel.className = "form-label";
+        optsLabel.style.fontSize = "0.85rem";
+        optsLabel.textContent = "Options — select the radio button for the correct answer";
+        card.appendChild(optsLabel);
 
         q.Options.forEach((opt, optIdx) => {
           const row = document.createElement("div");
-          row.style.cssText = "display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;";
-          row.innerHTML = `
-            <input type="radio" name="correct_${q.QuestionID}" ${q.CorrectAnswer === opt.OptionID ? 'checked' : ''} style="cursor: pointer;">
-            <input type="text" class="form-control" style="font-size: 0.85rem; padding: 0.4rem;" placeholder="Option ${optIdx + 1}" required>
-          `;
-          const radio = row.querySelector("input[type='radio']");
-          const optText = row.querySelector("input[type='text']");
+          row.className = "opt-row";
+
+          // Radio button
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = `correct_${q.QuestionID}`;
+          radio.checked = q.CorrectAnswer === opt.OptionID;
+          radio.title = "Mark as correct answer";
+          radio.style.cssText = "cursor: pointer; width: 18px; height: 18px; flex-shrink: 0;";
+          radio.addEventListener("change", () => { q.CorrectAnswer = opt.OptionID; });
+          row.appendChild(radio);
+
+          // Option text
+          const optText = document.createElement("input");
+          optText.type = "text";
+          optText.className = "form-control";
+          optText.style.cssText = "font-size: 0.85rem; padding: 0.4rem; flex: 1; min-width: 120px;";
+          optText.placeholder = `Option ${optIdx + 1}`;
           optText.value = opt.Text;
+          optText.addEventListener("input", (e) => { opt.Text = e.target.value; });
+          row.appendChild(optText);
 
-          radio.addEventListener("change", () => {
-            q.CorrectAnswer = opt.OptionID;
-          });
-          optText.addEventListener("input", (e) => {
-            opt.Text = e.target.value;
+          // Option image thumbnail (if already has one)
+          if (opt.image) {
+            const thumb = document.createElement("img");
+            thumb.className = "opt-img-thumb";
+            thumb.src = opt.image;
+            thumb.title = "Click to change image";
+            row.appendChild(thumb);
+          }
+
+          // Option image picker button
+          const optFileInput = document.createElement("input");
+          optFileInput.type = "file";
+          optFileInput.accept = "image/*";
+          optFileInput.style.display = "none";
+          row.appendChild(optFileInput);
+
+          const optImgBtn = document.createElement("button");
+          optImgBtn.type = "button";
+          optImgBtn.className = "btn btn-secondary opt-img-btn";
+          optImgBtn.textContent = opt.image ? "🖼 Change" : "🖼 Image";
+          optImgBtn.title = "Add/change image for this option";
+          optImgBtn.addEventListener("click", () => optFileInput.click());
+          row.appendChild(optImgBtn);
+
+          optFileInput.addEventListener("change", async () => {
+            const file = optFileInput.files[0];
+            if (!file) return;
+            if (file.size > 1 * 1024 * 1024) {
+              alert("Option image is too large. Please use an image under 1 MB.");
+              return;
+            }
+            try {
+              const b64 = await readFileAsBase64(file);
+              opt.image = b64;
+              renderBuilderQuestions(); // Re-render to show thumbnail
+            } catch (e) {
+              alert("Could not read image file.");
+            }
           });
 
-          optsContainer.appendChild(row);
+          // Remove option image
+          if (opt.image) {
+            const optRemoveBtn = document.createElement("button");
+            optRemoveBtn.type = "button";
+            optRemoveBtn.className = "btn btn-danger opt-img-btn";
+            optRemoveBtn.textContent = "✕";
+            optRemoveBtn.title = "Remove option image";
+            optRemoveBtn.addEventListener("click", () => {
+              opt.image = null;
+              renderBuilderQuestions();
+            });
+            row.appendChild(optRemoveBtn);
+          }
+
+          card.appendChild(row);
         });
-        card.appendChild(optsContainer);
 
       } else if (q.Type === "Text") {
         const ansGroup = document.createElement("div");
         ansGroup.className = "form-group";
-        ansGroup.innerHTML = `
-          <label class="form-label" style="font-size: 0.85rem;">Correct Answer (Comma-separated acceptable variations)</label>
-          <input type="text" class="form-control" style="font-size: 0.9rem;" placeholder="e.g. delhi,new delhi" required>
-        `;
-        const ansInput = ansGroup.querySelector("input");
+        ansGroup.innerHTML = `<label class="form-label" style="font-size: 0.85rem;">Correct Answer <small style="color:var(--text-muted)">(comma-separated acceptable variations)</small></label>`;
+        const ansInput = document.createElement("input");
+        ansInput.type = "text";
+        ansInput.className = "form-control";
+        ansInput.style.fontSize = "0.9rem";
+        ansInput.placeholder = "e.g. delhi,new delhi";
+        ansInput.required = true;
         ansInput.value = q.CorrectAnswer;
         ansInput.addEventListener("input", (e) => { q.CorrectAnswer = e.target.value; });
+        ansGroup.appendChild(ansInput);
         card.appendChild(ansGroup);
       }
 

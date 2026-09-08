@@ -160,9 +160,12 @@ class GoogleSheetsService:
 
         cell = ws.find(paper_id)
         if cell:
+            logger.info(f"[Sheets] Updating paper row {cell.row} for PaperID={paper_id} Title='{row[1]}' Status={row[5]}")
             ws.update(values=[row], range_name=f"A{cell.row}:N{cell.row}")
         else:
-            ws.append_row(row)
+            logger.info(f"[Sheets] Appending new paper row for PaperID={paper_id} Title='{row[1]}' Status={row[5]}")
+            ws.append_row(row, value_input_option="USER_ENTERED")
+
 
     @retry_with_backoff(retries=3, initial_delay=0.1)
     def sync_attempt(self, attempt_dict: Dict[str, Any]):
@@ -200,9 +203,12 @@ class GoogleSheetsService:
         ]
         cell = ws.find(attempt_id)
         if cell:
+            logger.info(f"[Sheets] Updating attempt row {cell.row} for AttemptID={attempt_id} Status={row[10]}")
             ws.update(values=[row], range_name=f"A{cell.row}:Y{cell.row}")
         else:
-            ws.append_row(row)
+            logger.info(f"[Sheets] Appending new attempt row for AttemptID={attempt_id} Name='{row[3]}' Status={row[10]}")
+            ws.append_row(row, value_input_option="USER_ENTERED")
+
 
     @retry_with_backoff(retries=3, initial_delay=0.1)
     def sync_webhook_event(self, event_dict: Dict[str, Any]):
@@ -224,7 +230,9 @@ class GoogleSheetsService:
             str(event_dict.get("ProcessingStatus", "PROCESSED")),
             str(event_dict.get("ErrorMessage", ""))
         ]
-        ws.append_row(row)
+        logger.info(f"[Sheets] Appending webhook event row for EventID={event_id} EventType={row[1]}")
+        ws.append_row(row, value_input_option="USER_ENTERED")
+
 
 sheets_service = GoogleSheetsService()
 

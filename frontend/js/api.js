@@ -80,6 +80,11 @@ const API = {
       body: JSON.stringify(body),
       headers
     });
+  },
+
+  delete(endpoint, headers = {}) {
+    return this.request(endpoint, { method: "DELETE", headers });
   }
 };
+
 

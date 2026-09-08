@@ -331,6 +331,54 @@ def archive_paper(
 
     return {"status": "archived", "paper_id": paper_id}
 
+@router.delete("/papers/{paper_id}")
+def delete_paper(
+    paper_id: str,
+    admin: AdminSessionModel = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Permanently deletes a paper. Blocked if active (non-completed) attempts exist."""
+    p = db.query(PaperModel).filter(PaperModel.PaperID == paper_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Paper not found.")
+
+    # Guard: do not delete if there are in-progress attempts
+    active_attempts = db.query(AttemptModel).filter(
+        AttemptModel.PaperID == paper_id,
+        AttemptModel.Status.in_(["PAID", "STARTED"])
+    ).count()
+    if active_attempts > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot delete paper with {active_attempts} active attempt(s). Archive it instead."
+        )
+
+    db.delete(p)
+    db.commit()
+
+    # Best-effort Sheets notification
+    try:
+        sheets_service.sync_paper({
+            "PaperID": paper_id,
+            "Title": f"[DELETED] {p.Title}",
+            "PriceMinorUnits": p.PriceMinorUnits,
+            "Currency": p.Currency,
+            "TimeLimitMinutes": p.TimeLimitMinutes,
+            "Status": "DELETED",
+            "Version": p.Version,
+            "NegativeMarkingEnabled": p.NegativeMarkingEnabled,
+            "ShowAnswerKey": p.ShowAnswerKey,
+            "AllowResume": p.AllowResume,
+            "AntiCheatPolicy": p.AntiCheatPolicy,
+            "QuestionsJSON": "[]",
+            "CreatedAt": to_iso(p.CreatedAt),
+            "UpdatedAt": to_iso(utc_now())
+        })
+    except Exception:
+        pass
+
+    return {"status": "deleted", "paper_id": paper_id}
+
 @router.post("/paper/{paper_id}/duplicate", response_model=PaperDetailAdmin)
 def duplicate_paper(
     paper_id: str,

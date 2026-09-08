@@ -16,7 +16,7 @@ class MockWorksheet:
         self.call_count = 0
         self.rows = []
 
-    def append_row(self, row):
+    def append_row(self, row, **kwargs):
         self.call_count += 1
         if self.call_count <= self.fail_count:
             raise MockGSpreadAPIError("429 RESOURCE_EXHAUSTED: Quota exceeded", code=429)
@@ -29,11 +29,12 @@ class MockWorksheet:
             raise MockGSpreadAPIError("429 RESOURCE_EXHAUSTED: Quota exceeded", code=429)
         return None
 
-    def update(self, range_name, values):
+    def update(self, values=None, range_name=None, **kwargs):
         self.call_count += 1
         if self.call_count <= self.fail_count:
             raise MockGSpreadAPIError("429 RESOURCE_EXHAUSTED: Quota exceeded", code=429)
         return {"updatedRange": range_name}
+
 
     def row_values(self, row_index):
         return ["Header1", "Header2"]

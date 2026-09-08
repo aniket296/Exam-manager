@@ -6,12 +6,14 @@ import re
 # Question Schemas
 class OptionItem(BaseModel):
     OptionID: str = Field(..., min_length=1, max_length=64)
-    Text: str = Field(..., min_length=1, max_length=1000)
+    Text: str = Field(default="", max_length=1000)
+    image: Optional[str] = None  # Base64 data URL (data:image/...;base64,...) or None
 
 class Question(BaseModel):
     QuestionID: str = Field(..., min_length=1, max_length=64)
     QuestionText: str = Field(..., min_length=1, max_length=4000)
-    ImageURL: Optional[str] = Field("", max_length=1000)
+    image: Optional[str] = None  # Base64 data URL for question image (replaces ImageURL for new questions)
+    ImageURL: Optional[str] = Field("", max_length=2000)  # Kept for backward compat; prefer image
     ImageAltText: Optional[str] = Field("", max_length=500)
     Type: Literal["MCQ", "Text"]
     Options: List[OptionItem] = Field(default_factory=list)
@@ -25,8 +27,11 @@ class Question(BaseModel):
         if not v or v.strip() == "":
             return ""
         v = v.strip()
+        # Allow Base64 data URLs, HTTPS, relative paths, localhost
+        if v.startswith("data:image/"):
+            return v
         if not (v.startswith("https://") or v.startswith("/") or v.startswith("http://localhost")):
-            raise ValueError("ImageURL must use HTTPS or safe relative path")
+            raise ValueError("ImageURL must use HTTPS, data URI, or safe relative path")
         return v
 
     @model_validator(mode="after")
@@ -52,11 +57,13 @@ class Question(BaseModel):
 class ExamSafeOption(BaseModel):
     OptionID: str
     Text: str
+    image: Optional[str] = None  # Base64 data URL for option image
 
 class ExamSafeQuestion(BaseModel):
     QuestionID: str
     QuestionText: str
-    ImageURL: Optional[str] = ""
+    image: Optional[str] = None   # Base64 data URL for question image
+    ImageURL: Optional[str] = ""  # Legacy field kept for backward compat
     ImageAltText: Optional[str] = ""
     Type: Literal["MCQ", "Text"]
     Options: List[ExamSafeOption] = Field(default_factory=list)

@@ -318,9 +318,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Question Text (Safe textContent)
     questionText.textContent = q.QuestionText;
 
-    // Image
-    if (q.ImageURL && q.ImageURL.trim() !== "") {
-      questionImage.src = q.ImageURL;
+    // Image — prefer new Base64 `image` field; fall back to legacy `ImageURL`
+    const imgSrc = q.image || (q.ImageURL && q.ImageURL.trim() !== "" ? q.ImageURL : null);
+    if (imgSrc) {
+      questionImage.src = imgSrc;
       questionImage.alt = q.ImageAltText || "Question illustration";
       questionImageWrap.style.display = "block";
     } else {
@@ -350,6 +351,16 @@ document.addEventListener("DOMContentLoaded", () => {
         item.appendChild(indicator);
         item.appendChild(label);
 
+        // Render option image if present
+        if (opt.image) {
+          item.classList.add("has-image");
+          const optImg = document.createElement("img");
+          optImg.className = "option-img";
+          optImg.src = opt.image;
+          optImg.alt = opt.Text || `Option image`;
+          item.appendChild(optImg);
+        }
+
         item.addEventListener("click", () => {
           answers[q.QuestionID] = opt.OptionID;
           saveLocalAnswers();
@@ -364,6 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
       textAnswerContainer.style.display = "block";
       textAnswerInput.value = answers[q.QuestionID] || "";
     }
+
 
     // Prev / Next button states
     prevQuestionBtn.style.visibility = currentIndex === 0 ? "hidden" : "visible";

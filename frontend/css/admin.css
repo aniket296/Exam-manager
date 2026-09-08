@@ -108,22 +108,121 @@
 
 /* Question Editor Box */
 .q-editor-card {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .q-editor-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .q-editor-title {
   font-weight: 700;
   font-size: 0.95rem;
+  color: var(--primary);
 }
+
+.q-editor-controls {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.q-editor-marks-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.q-editor-marks-row .form-group {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Image Picker */
+.img-picker-wrap {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  background: #f8fafc;
+  margin-bottom: 0.75rem;
+}
+
+.img-picker-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.img-preview {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: var(--radius-sm);
+  display: block;
+  margin: 0.5rem 0;
+  object-fit: contain;
+}
+
+.img-picker-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Option row with image support */
+.opt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.opt-img-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.opt-img-btn {
+  font-size: 0.75rem;
+  min-height: 30px;
+  padding: 0.2rem 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Exam-side option image cards */
+.option-item.has-image {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.option-img {
+  max-width: 100%;
+  max-height: 140px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  display: block;
+}
+
 
