@@ -142,6 +142,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS Configuration (Restricted Origins - Section 18)
+allowed_origins = [settings.FRONTEND_URL.rstrip("/")]
 # CORS Configuration (Unified & Production Origins)
 allowed_origins = [settings.FRONTEND_URL.rstrip("/")] if settings.FRONTEND_URL else []
 if settings.ENVIRONMENT == "development":
